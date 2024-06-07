@@ -1,40 +1,67 @@
-import React from "react";
-import One from "./components/One";
-import "./components/One.css";
-import Student from "./components/Student";
-import Background from "./components/Background";
-import Form from "./components/Form";
+import React, { useEffect, useRef, useState } from "react";
+import AddNote from "./components/AddNote";
+import Note from "./components/Note";
+import NavBar from "./components/NavBar";
+import LoadingEffect from "./components/LoadingEffect";
+import Intro from "./components/Intro";
 
 const App = () => {
-  const name = "CodeHub";
-  const students = [
-    {
-      name: "soeKhant",
-      age: 19,
-    },
-    {
-      name: "KhantSoe",
-      age: 20,
-    },
-    {
-      name: "SanKhoe",
-      age: 21,
-    },
-  ];
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  // get notes when app is start
+  useEffect(() => {
+    getNotes();
+  }, []);
+
+  // getNotes
+  const getNotes = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        "https://firenote-k-default-rtdb.firebaseio.com/notes.json"
+      );
+      if (!response.ok) {
+        throw new Error("Can't Show  The Notes");
+      }
+      const notes = await response.json();
+
+      const modifiedNote = [];
+
+      for (const key in notes) {
+        modifiedNote.push({
+          id: key,
+          noteText: notes[key],
+        });
+      }
+      setNotes(modifiedNote);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
   return (
-    <div className="mx-5">
-      <One name={name} className="mb-4" />
-
-      <Background>
-        <Student name={students[0].name} age={students[0].age} />
-        <Student name={students[1].name} age={students[1].age} />
-        <Student name={students[2].name} age={students[2].age} />
-      </Background>
-
-      <Background>
-        <Form />
-      </Background>
-    </div>
+    <main className="m-10">
+      <NavBar getNotes={getNotes} notes={notes} />
+      {loading && !error && <LoadingEffect />}
+      {error && !loading && (
+        <p className="text-2xl text-red-800 py-5 font-bold text-center">
+          {error}
+        </p>
+      )}
+      {!loading && !error && (
+        <>
+          <AddNote getNotes={getNotes} />
+          {notes.map((note, index) => (
+            <Note key={index} note={note} getNotes={getNotes} />
+          ))}
+        </>
+      )}
+      {
+        notes.length === 0 && <Intro/>
+      }
+    </main>
   );
 };
 
